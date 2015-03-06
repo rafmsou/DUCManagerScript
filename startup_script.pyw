@@ -1,14 +1,24 @@
+import socket, time
+
 def lock_workstation():
     import ctypes
     ctypes.windll.user32.LockWorkStation()
+
+def unknown_network():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(('8.8.8.8', 80))
+    result = s.getsockname()[0]
+    s.close()
+
+    print 'Local ip: %s' % result
+    return result != '192.168.0.101'
 
 def kill_dynamic_dns_updater():
     terminate_process("DUC40")
 
 def dns_is_updated():
-    import socket, urllib2, os, time
+    import urllib2
     time.sleep(10)
-    #os.system('ipconfig /flushdns')
     remote_ip = socket.gethostbyname('rafmsou.no-ip.info')
     print 'rafmsou.no-ip.info ip address lookup is -> %s' % remote_ip
     current_ip = urllib2.urlopen('http://ip.42.pl/raw').read()
@@ -21,7 +31,7 @@ def dns_is_updated():
     return False
 
 def get_process_id( name ):
-    import win32pdh, time
+    import win32pdh
     object = "Process"
     items, instances = win32pdh.EnumObjectItems( None, None, object,
                                                  win32pdh.PERF_DETAIL_WIZARD )
@@ -43,15 +53,20 @@ def get_process_id( name ):
         return val
 
 def terminate_process( name ):
-    import win32api, win32con, win32pdh, time
+    import win32api, win32con, win32pdh
+    pid = 0
     pid = get_process_id(name)
-    handle = win32api.OpenProcess( win32con.PROCESS_TERMINATE, 0, pid )
-    win32api.TerminateProcess( handle, 0 )
-    win32api.CloseHandle( handle )
+    if pid > 0:
+	    handle = win32api.OpenProcess( win32con.PROCESS_TERMINATE, 0, pid )
+	    win32api.TerminateProcess( handle, 0 )
+	    win32api.CloseHandle( handle )
     
 if __name__ == '__main__':
-    print 'locking workStation ...'
-    lock_workstation()
+
+    if unknown_network():
+    	print 'locking workStation ...'
+    	lock_workstation()
+
     print 'cheking dns is updated ...'
     while True:
         if dns_is_updated():
